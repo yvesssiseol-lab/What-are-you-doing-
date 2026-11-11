@@ -1,189 +1,95 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Canvas } from '@react-three/fiber'
 import { Float, Html, OrbitControls, Stars } from '@react-three/drei'
+import { CheckCircle2, ChevronRight, Lock, Map, Mic, RotateCcw, Sparkles, Star, Volume2, X } from 'lucide-react'
 import * as THREE from 'three'
-import { ArrowLeft, ArrowRight, AudioLines, BookOpen, CheckCircle2, ChevronRight, CircleHelp, Crown, Gamepad2, Ghost, Lock, Map, Mic, MicOff, Music2, RotateCcw, Sparkles, Star, Volume2, X } from 'lucide-react'
 
-type Place = { id: number; name: string; subtitle: string; icon: string; color: string; x: number; z: number }
-const places: Place[] = [
-  { id: 0, name: 'Pumpkin Patch', subtitle: 'Listen, sing & move', icon: '🎃', color: '#ff9b42', x: -5, z: 3 },
-  { id: 1, name: 'Haunted House', subtitle: 'Discover the grammar', icon: '🏚️', color: '#9b83ed', x: -2.7, z: -1 },
-  { id: 2, name: "Witch's Carnival", subtitle: 'Spin, mime & describe', icon: '🎪', color: '#ed76b7', x: 0, z: 3 },
-  { id: 3, name: 'Candy Forest', subtitle: 'Talk with a partner', icon: '🍭', color: '#65c9a5', x: 3, z: -1 },
-  { id: 4, name: 'Monster Castle', subtitle: 'Take the 10-question quiz', icon: '🏰', color: '#8b9ff0', x: 5.4, z: 3 },
-  { id: 5, name: 'News Studio', subtitle: 'Become a TV reporter', icon: '📺', color: '#f2c65e', x: 1, z: -5 }
+type Place = { id:number; name:string; subtitle:string; emoji:string; x:number; z:number; color:string; kind:string }
+const places:Place[] = [
+ {id:0,name:'Pumpkin Patch',subtitle:'Listen, sing & move',emoji:'🎃',x:-8,z:4,color:'#ff9b48',kind:'patch'},
+ {id:1,name:'Haunted House',subtitle:'Discover the grammar',emoji:'🏚️',x:-5,z:-3,color:'#a78bfa',kind:'house'},
+ {id:2,name:"Witch's Carnival",subtitle:'Spin, mime & describe',emoji:'🎪',x:0,z:4,color:'#f18bbd',kind:'carnival'},
+ {id:3,name:'Candy Forest',subtitle:'Talk with a partner',emoji:'🍭',x:5,z:-3,color:'#71d3ad',kind:'forest'},
+ {id:4,name:'Monster Castle',subtitle:'Take the 10-question quiz',emoji:'🏰',x:9,z:4,color:'#9caefb',kind:'castle'},
+ {id:5,name:'News Studio',subtitle:'Become a TV reporter',emoji:'📺',x:2,z:-9,color:'#f2c86e',kind:'studio'}
 ]
 const questions = [
-  { q: 'Look! He _____ football.', options: ['play', 'is playing', 'are playing'], answer: 1, why: 'He + is + verb-ing: He is playing football.' },
-  { q: 'She is _____ a book.', options: ['read', 'reading', 'reads'], answer: 1, why: 'After is, add -ing: reading.' },
-  { q: 'They _____ dancing.', options: ['is', 'am', 'are'], answer: 2, why: 'Use are with they.' },
-  { q: 'What is the girl doing? She is _____.', options: ['run', 'running', 'runs'], answer: 1, why: 'Running describes an action happening now.' },
-  { q: 'I _____ eating an apple.', options: ['am', 'is', 'are'], answer: 0, why: 'Use am with I.' },
-  { q: 'The boys are _____.', options: ['swim', 'swimming', 'swims'], answer: 1, why: 'Are + swimming.' },
-  { q: 'Choose the correct sentence.', options: ['He is jump.', 'He jumping.', 'He is jumping.'], answer: 2, why: 'Subject + is + verb-ing.' },
-  { q: 'Mum is _____ dinner.', options: ['cook', 'cooking', 'cooks'], answer: 1, why: 'Cooking is the -ing form.' },
-  { q: 'What are they doing? They _____ singing.', options: ['am', 'is', 'are'], answer: 2, why: 'Use are with they.' },
-  { q: 'The cat is _____.', options: ['sleeping', 'sleep', 'sleeps'], answer: 0, why: 'Is + sleeping.' }
+ {q:'Look! He _____ football.',o:['play','is playing','are playing'],a:1,e:'He + is + verb-ing: He is playing football.'},
+ {q:'She is _____ a book.',o:['read','reading','reads'],a:1,e:'After is, add -ing: reading.'},
+ {q:'They _____ dancing.',o:['is','am','are'],a:2,e:'Use are with they.'},
+ {q:'What is the girl doing? She is _____.',o:['run','running','runs'],a:1,e:'Running describes an action happening now.'},
+ {q:'I _____ eating an apple.',o:['am','is','are'],a:0,e:'Use am with I.'},
+ {q:'The boys are _____.',o:['swim','swimming','swims'],a:1,e:'Are + swimming.'},
+ {q:'Choose the correct sentence.',o:['He is jump.','He jumping.','He is jumping.'],a:2,e:'Subject + is + verb-ing.'},
+ {q:'Mum is _____ dinner.',o:['cook','cooking','cooks'],a:1,e:'Cooking is the -ing form.'},
+ {q:'What are they doing? They _____ singing.',o:['am','is','are'],a:2,e:'Use are with they.'},
+ {q:'The cat is _____.',o:['sleeping','sleep','sleeps'],a:0,e:'Is + sleeping.'}
 ]
-const actionWords = ['jumping', 'dancing', 'reading', 'swimming', 'singing', 'sleeping', 'running', 'painting']
-const sentences = ['He is jumping.', 'She is reading.', 'They are dancing.', 'The cat is sleeping.']
+const actions=['jumping','dancing','reading','swimming','singing','sleeping','running','painting']
 
-function Tree({ place, unlocked, onSelect }: { place: Place; unlocked: boolean; onSelect: (id: number) => void }) {
-  const color = new THREE.Color(place.color)
-  return <group position={[place.x, 0, place.z]} onClick={() => unlocked && onSelect(place.id)}>
-    <Float speed={1.3} floatIntensity={0.12}>
-      <mesh position={[0, 1.9, 0]} castShadow>
-        <sphereGeometry args={[0.68, 24, 20]} />
-        <meshStandardMaterial color={color} emissive={color} emissiveIntensity={0.22} />
-      </mesh>
-      <Html position={[0, 2.0, 0]} center distanceFactor={11} style={{ pointerEvents: 'none' }}>
-        <div className="map-icon">{place.icon}</div>
-      </Html>
-    </Float>
-    <mesh position={[0, 0.45, 0]} castShadow>
-      <cylinderGeometry args={[0.85, 1.05, 0.9, 8]} />
-      <meshStandardMaterial color={place.id === 4 ? '#555078' : '#34304f'} />
-    </mesh>
-    <mesh position={[0, 0.94, 0]} castShadow>
-      <cylinderGeometry args={[0.7, 0.85, 0.18, 8]} />
-      <meshStandardMaterial color={place.color} />
-    </mesh>
-    <Html position={[0, -0.18, 0]} center distanceFactor={10}>
-      <button className={`map-label ${unlocked ? '' : 'locked'}`} onClick={(e) => { e.stopPropagation(); if (unlocked) onSelect(place.id) }}>
-        {unlocked ? '' : '🔒 '}{place.name}
-      </button>
-    </Html>
-    {!unlocked && <mesh position={[0, 2.8, 0]}><torusGeometry args={[0.82, 0.035, 8, 28]} /><meshBasicMaterial color="#b8a9e8" /></mesh>}
-  </group>
+function House({p}:{p:Place}) {
+ const c=p.color
+ return <group position={[p.x,0,p.z]}>
+   {p.kind==='patch' && <>{Array.from({length:7},(_,i)=><group key={i} position={[(i%3-1)*1.15,0,Math.floor(i/3)*1.1-0.6]}><mesh position={[0,.45,0]} castShadow><sphereGeometry args={[.43,12,10]}/><meshStandardMaterial color="#f58a32"/></mesh><mesh position={[0,.9,0]}><cylinderGeometry args={[.07,.1,.22,6]}/><meshStandardMaterial color="#477b42"/></mesh></group>)}</>}
+   {p.kind==='house' && <><mesh position={[0,1.35,0]} castShadow><boxGeometry args={[2.6,2.4,2.2]}/><meshStandardMaterial color="#6b5a91"/></mesh><mesh position={[0,2.9,0]} castShadow><coneGeometry args={[1.9,1.5,4]}/><meshStandardMaterial color="#44395f"/></mesh><mesh position={[0,.65,1.12]}><boxGeometry args={[.55,1.3,.08]}/><meshStandardMaterial color="#302747"/></mesh>{[-.7,.7].map(x=><mesh key={x} position={[x,1.65,1.14]}><boxGeometry args={[.42,.5,.08]}/><meshStandardMaterial color="#ffd36f" emissive="#ffb84d" emissiveIntensity={.6}/></mesh>)}</>}
+   {p.kind==='carnival' && <><mesh position={[0,1.5,0]}><cylinderGeometry args={[1.5,1.5,2.1,24,1,true]}/><meshStandardMaterial color="#f2a0c6" side={THREE.DoubleSide}/></mesh><mesh position={[0,2.7,0]}><coneGeometry args={[1.65,1.4,24]}/><meshStandardMaterial color="#a88af0"/></mesh><mesh position={[0,.55,0]}><cylinderGeometry args={[1.65,1.65,.2,24]}/><meshStandardMaterial color="#ffd27c"/></mesh></>}
+   {p.kind==='forest' && <>{[-1,0,1].map((x,i)=><group key={x} position={[x*1.05,0,(i%2)*.65]}><mesh position={[0,.8,0]}><cylinderGeometry args={[.13,.18,1.6,7]}/><meshStandardMaterial color="#75533f"/></mesh><mesh position={[0,1.9,0]}><coneGeometry args={[.85,2,8]}/><meshStandardMaterial color={i%2?'#56ad89':'#76c99b'}/></mesh></group>)}</>}
+   {p.kind==='castle' && <><mesh position={[0,1.2,0]}><boxGeometry args={[3.1,2.3,2.2]}/><meshStandardMaterial color="#7773a8"/></mesh>{[-1.2,1.2].map(x=><group key={x} position={[x,1.8,0]}><mesh position={[0,.8,0]}><cylinderGeometry args={[.48,.55,3.3,8]}/><meshStandardMaterial color="#9a91d1"/></mesh><mesh position={[0,2.7,0]}><coneGeometry args={[.65,1.2,8]}/><meshStandardMaterial color="#ed8ab6"/></mesh></group>)}<mesh position={[0,.6,1.13]}><boxGeometry args={[.7,1.2,.08]}/><meshStandardMaterial color="#372b55"/></mesh></>}
+   {p.kind==='studio' && <><mesh position={[0,1.1,0]}><boxGeometry args={[3.1,2.1,2.2]}/><meshStandardMaterial color="#6b6698"/></mesh><mesh position={[0,2.35,0]}><boxGeometry args={[3.35,.35,2.4]}/><meshStandardMaterial color="#f4c86f"/></mesh><mesh position={[0,1.3,1.14]}><boxGeometry args={[1.8,1.1,.08]}/><meshStandardMaterial color="#7ed8d1" emissive="#5bbfb5" emissiveIntensity={.4}/></mesh></>}
+   <Html position={[0,3.55,0]} center distanceFactor={11}><div className="place-tag">{p.emoji} {p.name}</div></Html>
+ </group>
 }
-
-function World({ completed, onSelect }: { completed: number[]; onSelect: (id: number) => void }) {
-  return <Canvas shadows camera={{ position: [10, 11, 14], fov: 42 }} dpr={[1, 1.5]}>
-    <color attach="background" args={['#17152f']} />
-    <fog attach="fog" args={['#17152f', 15, 31]} />
-    <ambientLight intensity={1.1} />
-    <directionalLight position={[5, 12, 7]} intensity={2.2} castShadow />
-    <pointLight position={[-7, 5, 2]} color="#a58bff" intensity={22} />
-    <Stars radius={55} depth={30} count={800} factor={3} fade speed={0.5} />
-    <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.15, 0]} receiveShadow>
-      <planeGeometry args={[30, 25]} />
-      <meshStandardMaterial color="#272644" />
-    </mesh>
-    {Array.from({ length: 24 }, (_, i) => <mesh key={i} position={[(i % 6) * 4.8 - 12, 0.02, Math.floor(i / 6) * 5.5 - 8]} rotation={[-Math.PI / 2, 0, 0]}>
-      <circleGeometry args={[0.13, 8]} /><meshBasicMaterial color={i % 2 ? '#ffb15e' : '#9b83ed'} />
-    </mesh>)}
-    <mesh position={[0, -0.02, 0]} rotation={[-Math.PI / 2, 0, 0]}>
-      <ringGeometry args={[2.4, 2.52, 64]} /><meshBasicMaterial color="#725da8" />
-    </mesh>
-    {places.map(p => <Tree key={p.id} place={p} unlocked={p.id === 0 || completed.includes(p.id - 1)} onSelect={onSelect} />)}
-    <OrbitControls enablePan={false} minDistance={9} maxDistance={22} maxPolarAngle={Math.PI / 2.05} minPolarAngle={0.55} />
-  </Canvas>
+function Avatar({position}:{position:[number,number,number]}) {
+ return <group position={position}>
+  <mesh position={[0,.7,0]} castShadow><capsuleGeometry args={[.36,.65,4,8]}/><meshStandardMaterial color="#f6f0ff"/></mesh>
+  <mesh position={[0,1.22,0]}><sphereGeometry args={[.36,16,12]}/><meshStandardMaterial color="#fff8ff"/></mesh>
+  <mesh position={[-.13,1.27,.31]}><sphereGeometry args={[.045,8,8]}/><meshBasicMaterial color="#34254b"/></mesh><mesh position={[.13,1.27,.31]}><sphereGeometry args={[.045,8,8]}/><meshBasicMaterial color="#34254b"/></mesh>
+  <mesh position={[0,1.02,.33]}><sphereGeometry args={[.07,8,8]}/><meshBasicMaterial color="#ee83a7"/></mesh>
+  <mesh position={[0,1.62,0]}><coneGeometry args={[.45,.65,8]}/><meshStandardMaterial color="#9b78e8"/></mesh>
+ </group>
 }
-
-function App() {
-  const [completed, setCompleted] = useState<number[]>(() => JSON.parse(localStorage.getItem('trick-tense-completed') || '[]'))
-  const [candies, setCandies] = useState<number>(() => Number(localStorage.getItem('trick-tense-candies') || 0))
-  const [active, setActive] = useState<number | null>(null)
-  const [quizIndex, setQuizIndex] = useState(0)
-  const [answers, setAnswers] = useState<number[]>([])
-  const [feedback, setFeedback] = useState('')
-  const [spinner, setSpinner] = useState('')
-  const [talkIndex, setTalkIndex] = useState(0)
-  const [recording, setRecording] = useState(false)
-  const [recorded, setRecorded] = useState(false)
-  const [survey, setSurvey] = useState('')
-  const [name, setName] = useState('Little Reporter')
-  const [actionDone, setActionDone] = useState(false)
-
-  useEffect(() => { localStorage.setItem('trick-tense-completed', JSON.stringify(completed)); localStorage.setItem('trick-tense-candies', String(candies)) }, [completed, candies])
-  const score = useMemo(() => answers.reduce((sum, a, i) => sum + (a === questions[i]?.answer ? 1 : 0), 0), [answers])
-  const unlockedCount = Math.min(6, completed.length + 1)
-  function finish(id: number, reward = 10) {
-    if (!completed.includes(id)) { setCompleted(old => [...old, id]); setCandies(c => c + reward) }
-    setActive(null); setFeedback(''); setActionDone(false)
-  }
-  function speak(text: string) { if ('speechSynthesis' in window) { window.speechSynthesis.cancel(); window.speechSynthesis.speak(new SpeechSynthesisUtterance(text)) } }
-  function chooseAnswer(index: number) {
-    if (answers.length > quizIndex) return
-    const next = [...answers, index]; setAnswers(next)
-    setFeedback(index === questions[quizIndex].answer ? 'Correct! Great work! 🍬' : `Not quite. ${questions[quizIndex].why}`)
-  }
-  function nextQuestion() { if (quizIndex < questions.length - 1) { setQuizIndex(i => i + 1); setFeedback('') } else { setFeedback(score >= 8 ? `Amazing! You scored ${score}/10. You passed!` : `You scored ${score}/10. Try again to reach 8/10.`) } }
-  function resetQuiz() { setQuizIndex(0); setAnswers([]); setFeedback('') }
-  const current = active === null ? null : places[active]
-  return <main className="app-shell">
-    <header className="topbar">
-      <div className="brand"><div className="brand-mark">🎃</div><div><strong>TRICK OR TENSE</strong><small>HALLOWEEN ENGLISH ADVENTURE</small></div></div>
-      <div className="top-stats"><span><CandyIcon /> {candies} candies</span><span><Star size={16} /> {completed.length}/6 quests</span></div>
-    </header>
-    <section className="hero-row">
-      <div><div className="eyebrow"><Sparkles size={14} /> YEAR 3 • ENGLISH GRAMMAR</div><h1>Welcome to the<br /><em>Halloween Village!</em></h1><p>Explore, play and learn how to describe actions happening right now.</p></div>
-      <div className="ghost-card"><div className="ghost-big">👻</div><div><b>Casper says...</b><p>“Ready, little learner? Complete each quest to collect sweet rewards!”</p></div></div>
-    </section>
-    <section className="game-layout">
-      <div className="world-panel">
-        <div className="world-heading"><span><Map size={17} /> YOUR ADVENTURE MAP</span><span className="map-hint">Drag to explore · Click a place to enter</span></div>
-        <div className="world-canvas"><World completed={completed} onSelect={setActive} /></div>
-        <div className="world-legend"><span>🟢 Available</span><span>🔒 Locked until previous quest</span><span>🍬 Complete quests to earn candies</span></div>
-      </div>
-      <aside className="side-panel">
-        <div className="panel-title"><Gamepad2 size={18} /> QUEST JOURNEY</div>
-        <div className="progress-track"><div style={{ width: `${completed.length / 6 * 100}%` }} /></div>
-        <small className="muted">{completed.length} of 6 quests completed</small>
-        {places.map(p => <button key={p.id} className={`quest-row ${completed.includes(p.id) ? 'done' : ''} ${p.id > 0 && !completed.includes(p.id - 1) ? 'disabled' : ''}`} onClick={() => (p.id === 0 || completed.includes(p.id - 1)) && setActive(p.id)} disabled={p.id > 0 && !completed.includes(p.id - 1)}>
-          <span className="quest-icon">{p.icon}</span><span className="quest-copy"><b>{p.name}</b><small>{p.subtitle}</small></span>{completed.includes(p.id) ? <CheckCircle2 className="green" size={18} /> : p.id > 0 && !completed.includes(p.id - 1) ? <Lock size={16} /> : <ChevronRight size={18} />}
-        </button>)}
-        <div className="tip-card"><Ghost size={18} /><span><b>Learning tip</b><small>Remember: am / is / are + action-ing!</small></span></div>
-      </aside>
-    </section>
-    <footer><span>Made for curious learners ✦ Present Continuous Tense</span><button onClick={() => { if (confirm('Reset all progress and candies?')) { setCompleted([]); setCandies(0); resetQuiz(); localStorage.clear() } }}><RotateCcw size={14} /> Reset progress</button></footer>
-
-    {current && <div className="modal-backdrop" onClick={() => setActive(null)}><section className="activity-modal" onClick={e => e.stopPropagation()}>
-      <button className="close-modal" onClick={() => setActive(null)}><X size={20} /></button>
-      <div className="modal-kicker">QUEST {current.id + 1} OF 6</div><div className="modal-title"><span>{current.icon}</span><div><h2>{current.name}</h2><p>{current.subtitle}</p></div></div>
-      {active === 0 && <div className="activity-content">
-        <h3>🎵 Let's move and sing!</h3><p>Listen to the action words. Say each word and do the action.</p>
-        <div className="action-grid">{actionWords.slice(0, 6).map(w => <button key={w} onClick={() => speak(w)}><span>{({ jumping: '🤸', dancing: '💃', reading: '📖', swimming: '🏊', singing: '🎤', sleeping: '😴' } as Record<string,string>)[w]}</span>{w}<Volume2 size={14} /></button>)}</div>
-        <div className="callout">Try saying: “I am jumping!” or “I am dancing!”</div>
-        <button className="primary-btn" onClick={() => finish(0)}>I sang and moved! <ArrowRight size={17} /></button>
-      </div>}
-      {active === 1 && <div className="activity-content">
-        <h3>🪄 The present continuous spell</h3><p>We use the present continuous to talk about actions happening now.</p>
-        <div className="formula"><span className="blue">WHO</span><b>+</b><span className="yellow">am / is / are</span><b>+</b><span className="red">VERB-ing</span></div>
-        <div className="sentence-examples">{sentences.map(s => <div key={s}><span>{s}</span><button onClick={() => speak(s)} aria-label={`Listen to ${s}`}><Volume2 size={16} /></button></div>)}</div>
-        <div className="callout"><b>Remember:</b> I am · He/She/It is · You/We/They are</div>
-        <button className="primary-btn" onClick={() => finish(1)}>I know the grammar! <ArrowRight size={17} /></button>
-      </div>}
-      {active === 2 && <div className="activity-content">
-        <h3>🎡 Spin the action wheel!</h3><p>Spin, mime the action and say a complete sentence.</p>
-        <div className="spinner-display">{spinner || '🎃'}</div><button className="primary-btn" onClick={() => { setSpinner(actionWords[Math.floor(Math.random() * actionWords.length)]); setActionDone(false) }}>SPIN THE WHEEL</button>
-        {spinner && <div className="callout">Mime <b>{spinner}</b> and say: “I am {spinner}!”</div>}
-        {spinner && <button className="secondary-btn" onClick={() => finish(2)}>I described the action</button>}
-      </div>}
-      {active === 3 && <div className="activity-content">
-        <h3>🍭 Partner talk time</h3><p>Take turns asking and answering. Read the model dialogue aloud.</p>
-        <div className="dialogue-card"><div><b>👧 A:</b> What is he doing?</div><div><b>🧒 B:</b> He is {['jumping', 'reading', 'dancing', 'swimming'][talkIndex]}.</div></div>
-        <button className="secondary-btn" onClick={() => setTalkIndex(i => (i + 1) % 4)}>Next action card <ArrowRight size={16} /></button>
-        <button className="primary-btn" onClick={() => finish(3)}>We practised together! <ArrowRight size={17} /></button>
-      </div>}
-      {active === 4 && <div className="activity-content">
-        <h3>🏰 Monster Castle Challenge</h3><p>Answer 10 questions. Score at least 8/10 to pass.</p>
-        {answers.length < 10 ? <><div className="quiz-progress">QUESTION {quizIndex + 1} / 10 <span>{answers.length} answered</span></div><h4 className="question">{questions[quizIndex].q}</h4><div className="answer-list">{questions[quizIndex].options.map((o, i) => <button key={o} className={answers.length > quizIndex && answers[quizIndex] === i ? 'selected' : ''} disabled={answers.length > quizIndex} onClick={() => chooseAnswer(i)}>{String.fromCharCode(65 + i)}. {o}</button>)}</div>{feedback && <div className="feedback">{feedback}<button onClick={nextQuestion}>{quizIndex === 9 ? 'See result' : 'Next question'} <ArrowRight size={15} /></button></div>}</> : <div className="result-box"><div className="result-score">{score}/10</div><h3>{score >= 8 ? 'Castle cleared! 🎉' : 'Keep practising! 💜'}</h3><p>{score >= 8 ? 'You have mastered the grammar challenge.' : 'Try again and aim for 8 correct answers.'}</p><button className="primary-btn" onClick={() => score >= 8 ? finish(4, 20) : resetQuiz()}>{score >= 8 ? 'Collect my reward' : 'Try again'}</button></div>}
-      </div>}
-      {active === 5 && <div className="activity-content">
-        <h3>📺 You are the news reporter!</h3><p>Describe three actions happening on your screen. Use “He/She is + verb-ing”.</p>
-        <label className="field-label">Reporter name</label><input className="text-input" value={name} onChange={e => setName(e.target.value)} />
-        <div className="news-scenes">{['👻 A ghost is dancing.', '🧙 A witch is flying.', '🧛 A vampire is reading.'].map(s => <div key={s}>{s}</div>)}</div>
-        <div className="callout">Start your report: “Good morning! I am {name || 'a reporter'}. Look! The ghost is dancing...”</div>
-        <button className="secondary-btn" onClick={() => speak(`Good morning! I am ${name}. Look! The ghost is dancing. The witch is flying. The vampire is reading.`)}><Volume2 size={16} /> Listen to model report</button>
-        <button className="secondary-btn" onClick={() => { setRecording(!recording); setRecorded(true) }}>{recording ? <MicOff size={16} /> : <Mic size={16} />}{recording ? 'Stop practice' : 'Start speaking practice'}</button>
-        {recorded && <p className="muted">Speaking practice selected. Use your device microphone or practise aloud with a teacher.</p>}
-        <label className="field-label">How did you feel about this lesson?</label><select className="text-input" value={survey} onChange={e => setSurvey(e.target.value)}><option value="">Choose one...</option><option>It was fun and easy!</option><option>I learned something new.</option><option>I need more practice.</option></select>
-        <button className="primary-btn" disabled={!survey} onClick={() => finish(5, 20)}>Submit my report <ArrowRight size={17} /></button>
-      </div>}
-    </section></div>}
-  </main>
+function World({completed,onSelect}:{completed:number[];onSelect:(id:number)=>void}) {
+ const [pos,setPos]=useState<[number,number,number]>([-10,0,6])
+ useEffect(()=>{const fn=(e:KeyboardEvent)=>{const d=.55;setPos(p=>[THREE.MathUtils.clamp(p[0]+(e.key==='ArrowRight'||e.key==='d'?d:e.key==='ArrowLeft'||e.key==='a'?-d:0),-12,12),0,THREE.MathUtils.clamp(p[2]+(e.key==='ArrowDown'||e.key==='s'?d:e.key==='ArrowUp'||e.key==='w'?-d:0),-11,9)])};window.addEventListener('keydown',fn);return()=>window.removeEventListener('keydown',fn)},[])
+ const roadPoints=useMemo(()=>[new THREE.Vector3(-10,.04,6),new THREE.Vector3(-8,.04,1),new THREE.Vector3(-5,.04,-3),new THREE.Vector3(-2,.04,1),new THREE.Vector3(0,.04,4),new THREE.Vector3(3,.04,0),new THREE.Vector3(5,.04,-3),new THREE.Vector3(8,.04,0),new THREE.Vector3(9,.04,4),new THREE.Vector3(6,.04,7),new THREE.Vector3(2,.04,5),new THREE.Vector3(2,.04,-9)],[])
+ const road=new THREE.CatmullRomCurve3(roadPoints)
+ return <Canvas shadows camera={{position:[15,18,20],fov:42}} dpr={[1,1.5]}>
+  <color attach="background" args={['#b9a9e8']}/><fog attach="fog" args={['#b9a9e8',25,48]}/>
+  <ambientLight intensity={1.7}/><directionalLight position={[8,15,8]} intensity={2.3} castShadow/><pointLight position={[-8,7,-5]} color="#ffd17a" intensity={30}/>
+  <Stars radius={80} depth={35} count={500} factor={2} fade/>
+  <mesh rotation={[-Math.PI/2,0,0]} position={[0,-.12,0]} receiveShadow><planeGeometry args={[34,30]}/><meshStandardMaterial color="#789d82"/></mesh>
+  <mesh position={[0,-.04,0]} rotation={[-Math.PI/2,0,0]}><circleGeometry args={[14,48]}/><meshStandardMaterial color="#8bb38b"/></mesh>
+  <mesh><tubeGeometry args={[road,180,.55,10,false]}/><meshStandardMaterial color="#d9c4a4"/></mesh>
+  {Array.from({length:35},(_,i)=><mesh key={i} position={[(i*7%27)-13,.12,(i*11%23)-11]}><sphereGeometry args={[.15+(i%3)*.05,8,8]}/><meshStandardMaterial color={['#ffb45f','#f7d9a0','#a88ae8'][i%3]}/></mesh>)}
+  {places.map(p=><group key={p.id} onClick={()=>{if(p.id===0||completed.includes(p.id-1))onSelect(p.id)}}><House p={p}/></group>)}
+  <Avatar position={pos}/>
+  <OrbitControls enablePan={false} minDistance={17} maxDistance={31} maxPolarAngle={Math.PI/2.15} minPolarAngle={.45}/>
+ </Canvas>
 }
-
-function CandyIcon() { return <span aria-hidden="true">🍬</span> }
-export default App
+export default function App(){
+ const [completed,setCompleted]=useState<number[]>(()=>JSON.parse(localStorage.getItem('tt-done')||'[]'))
+ const [candies,setCandies]=useState(()=>Number(localStorage.getItem('tt-candy')||0))
+ const [active,setActive]=useState<number|null>(null)
+ const [spin,setSpin]=useState('');const [qIndex,setQIndex]=useState(0);const [answers,setAnswers]=useState<number[]>([]);const [feedback,setFeedback]=useState('');const [survey,setSurvey]=useState('')
+ useEffect(()=>{localStorage.setItem('tt-done',JSON.stringify(completed));localStorage.setItem('tt-candy',String(candies))},[completed,candies])
+ const score=answers.filter((a,i)=>a===questions[i]?.a).length
+ function finish(id:number,reward=10){if(!completed.includes(id)){setCompleted(v=>[...v,id]);setCandies(v=>v+reward)}setActive(null)}
+ function say(t:string){if('speechSynthesis'in window){speechSynthesis.cancel();speechSynthesis.speak(new SpeechSynthesisUtterance(t))}}
+ function answer(i:number){if(answers.length>qIndex)return;setAnswers(v=>[...v,i]);setFeedback(i===questions[qIndex].a?'Correct! You earned a spooky smile! 🍬':questions[qIndex].e)}
+ const p=active===null?null:places[active]
+ return <main className="app">
+  <header className="nav"><div className="logo">🎃 <span>TRICK OR TENSE</span></div><div className="nav-right">🍬 {candies} candies　 ✨ {completed.length}/6 quests</div></header>
+  <section className="welcome"><div><div className="eyebrow"><Sparkles size={14}/> A MAGICAL ENGLISH ADVENTURE</div><h1>Explore the <em>Halloween Village!</em></h1><p>Walk the candy trail, meet friendly monsters and learn to describe actions happening now.</p></div><div className="guide"><span>👻</span><div><b>Casper the Guide</b><small>Use W A S D or arrow keys to explore. Click an unlocked place to begin!</small></div></div></section>
+  <section className="layout"><div className="map-card"><div className="map-head"><b><Map size={17}/> THE VILLAGE MAP</b><span>Drag to look around · Use W A S D to move</span></div><div className="world"><World completed={completed} onSelect={setActive}/></div><div className="map-foot">🎃 Pumpkin Patch　 🏚️ Haunted House　 🎪 Carnival　 🍭 Candy Forest　 🏰 Castle　 📺 Studio</div></div>
+  <aside className="quests"><h2>✨ Your adventure</h2><div className="progress"><span style={{width:`${completed.length/6*100}%`}}/></div><small>{completed.length} of 6 adventures complete</small>{places.map(p=><button className="quest" key={p.id} disabled={p.id>0&&!completed.includes(p.id-1)} onClick={()=>setActive(p.id)}><span>{p.emoji}</span><div><b>{p.name}</b><small>{p.subtitle}</small></div>{completed.includes(p.id)?<CheckCircle2 color="#70d6a4"/>:p.id>0&&!completed.includes(p.id-1)?<Lock size={16}/>:<ChevronRight size={18}/>}</button>)}<div className="tip">💡 Remember: <b>am / is / are + action-ing!</b></div></aside></section>
+  <footer>Made for Year 3 English learners · Present Continuous Tense <button onClick={()=>{if(confirm('Reset all your progress?')){setCompleted([]);setCandies(0);localStorage.removeItem('tt-done');localStorage.removeItem('tt-candy')}}}><RotateCcw size={13}/> Reset progress</button></footer>
+  {p&&<div className="overlay" onClick={()=>setActive(null)}><section className="modal" onClick={e=>e.stopPropagation()}><button className="close" onClick={()=>setActive(null)}><X/></button><div className="modal-eyebrow">ADVENTURE {p.id+1} OF 6</div><h2>{p.emoji} {p.name}</h2><p>{p.subtitle}</p>
+   {active===0&&<><h3>🎵 Listen, sing and move!</h3><p>Say each action word and show it with your body.</p><div className="word-grid">{actions.map(w=><button onClick={()=>say(w)} key={w}>{w} <Volume2 size={14}/></button>)}</div><div className="note">Try: “I am jumping!” · “I am dancing!”</div><button className="primary" onClick={()=>finish(0)}>I sang and moved! 🍬</button></>}
+   {active===1&&<><h3>🪄 Learn the grammar spell</h3><p>We use the present continuous for actions happening now.</p><div className="formula"><span>WHO</span> + <span>am / is / are</span> + <span>VERB-ing</span></div><div className="examples">{['He is jumping.','She is reading.','They are dancing.','The cat is sleeping.'].map(s=><button key={s} onClick={()=>say(s)}>{s} <Volume2 size={14}/></button>)}</div><div className="note">I am · He/She/It is · You/We/They are</div><button className="primary" onClick={()=>finish(1)}>I learned the grammar! 🍬</button></>}
+   {active===2&&<><h3>🎡 Spin the action wheel</h3><p>Mime the action and say a full sentence.</p><div className="wheel">{spin||'🎃'}</div><button className="primary" onClick={()=>setSpin(actions[Math.floor(Math.random()*actions.length)])}>SPIN THE WHEEL</button>{spin&&<><div className="note">Mime <b>{spin}</b> and say “I am {spin}!”</div><button className="secondary" onClick={()=>finish(2)}>I described it!</button></>}</>}
+   {active===3&&<><h3>🍭 Partner talk</h3><div className="dialogue"><b>👧 A: What is he doing?</b><b>🧒 B: He is jumping.</b><small>Take turns asking and answering with your partner. Try changing the action word.</small></div><button className="primary" onClick={()=>finish(3)}>We practised together! 🍬</button></>}
+   {active===4&&<><h3>🏰 Monster Castle Quiz</h3><p>Answer all 10 questions. You need 8/10 to pass.</p>{answers.length<10?<><div className="qcount">QUESTION {qIndex+1} / 10</div><h3>{questions[qIndex].q}</h3><div className="options">{questions[qIndex].o.map((o,i)=><button disabled={answers.length>qIndex} onClick={()=>answer(i)} key={o}>{String.fromCharCode(65+i)}. {o}</button>)}</div>{feedback&&<div className="note">{feedback}<button className="text-btn" onClick={()=>{setQIndex(v=>v+1);setFeedback('')}}>{qIndex===9?'Finish':'Next question'} →</button></div>}</>:<div className="result"><strong>{score}/10</strong><p>{score>=8?'You passed! The castle gates are open!':'Keep practising and try again!'}</p><button className="primary" onClick={()=>{if(score>=8)finish(4,20);else{setAnswers([]);setQIndex(0);setFeedback('')}}}>{score>=8?'Collect reward':'Try again'}</button></div>}</>}
+   {active===5&&<><h3>📺 Become a TV reporter!</h3><p>Describe these three actions using He/She is + verb-ing.</p><div className="scenes"><span>👻 A ghost is dancing.</span><span>🧙 A witch is flying.</span><span>🧛 A vampire is reading.</span></div><button className="secondary" onClick={()=>say('Good morning! The ghost is dancing. The witch is flying. The vampire is reading.')}> <Mic size={16}/> Listen to model report</button><label>How did you feel about this lesson?</label><select value={survey} onChange={e=>setSurvey(e.target.value)}><option value="">Choose one...</option><option>It was fun and easy!</option><option>I learned something new.</option><option>I need more practice.</option></select><button className="primary" disabled={!survey} onClick={()=>finish(5,20)}>Submit my report 🍬</button></>}
+  </section></div>}
+ </main>
+}
